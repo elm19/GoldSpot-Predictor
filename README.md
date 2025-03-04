@@ -1,0 +1,1 @@
+# GoldSpot-Predictor
