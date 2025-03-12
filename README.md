@@ -38,3 +38,11 @@ GoldSpot Predictor is a machine learning project designed to predict the price m
    git clone https://github.com/elm19/goldspot-predictor.git
    cd goldspot-predictor
    ```
+   
+  
+  
+challenges: 
+1 how would we evaluate our model in our case? we should no just consider it 
+
+
+1 
