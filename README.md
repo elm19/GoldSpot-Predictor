@@ -18,6 +18,7 @@ GoldSpot Predictor is a machine learning project designed to predict the price m
 ├── 📂 data                 # Raw and processed datasets
 ├── 📂 notebooks            # Jupyter notebooks for EDA and model training
 ├── 📂 models               # Trained models and saved weights
+├── 📂 scripts              # cripts used for data preprocessing, model training, and evaluation.
 ├── 📂 api                  # Deployment API (Flask/FastAPI)(LATER)
 ├── 📂 reports              # Analysis and results
 ├── .gitignore              # Git ignore file
