@@ -1,6 +1,6 @@
 # Reports Folder
 
-This folder contains analysis reports and documentation.
+This folder contains analysis reports, documentationa & representation.
 
 ## Includes:
 - Research findings
