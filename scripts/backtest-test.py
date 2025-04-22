@@ -62,7 +62,7 @@ class TestStrategy(bt.Strategy):
 
                     if self.dataclose[-1] < self.dataclose[-2]:
                         # previous close less than the previous close
-
+                        
                         # BUY, BUY, BUY!!! (with default parameters)
                         self.log('BUY CREATE, %.2f' % self.dataclose[0])
 
@@ -93,15 +93,27 @@ if __name__ == '__main__':
     datapath = os.path.join(modpath, '../data/processed-data/price-gold-cleaned.csv')
 
     # Create a Data Feed
-    data = bt.feeds.YahooFinanceCSVData(
+    # data = bt.feeds.YahooFinanceCSVData(
+    #     dataname=datapath,
+    #     # Do not pass values before this date
+    #     # fromdate=datetime.datetime(2020, 1, 1),
+    #     # # Do not pass values before this date
+    #     # todate=datetime.datetime(2020, 12, 31),
+    #     # Do not pass values after this date
+    #     reverse=False)
+    data = bt.feeds.GenericCSVData(
         dataname=datapath,
-        # Do not pass values before this date
-        # fromdate=datetime.datetime(2020, 1, 1),
-        # # Do not pass values before this date
-        # todate=datetime.datetime(2020, 12, 31),
-        # Do not pass values after this date
-        reverse=False)
-
+        dtformat=('%Y-%m-%d'),
+        datetime=0,
+        time=-1,
+        openinterest=-1,
+        high=3,
+        low=4,
+        close=2,
+        volume=5,
+        open=5,
+        # nullvalue=0.0
+    )
     # Add the Data Feed to Cerebro
     cerebro.adddata(data)
 
