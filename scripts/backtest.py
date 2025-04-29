@@ -5,20 +5,29 @@ from __future__ import (absolute_import, division, print_function,
 import os.path  # To manage paths
 import sys
 import time 
-
+from datetime import datetime
 # Import the backtrader platform
 import backtrader as bt
 import backtrader.analyzers as btanalyzers
 import backtrader.strategies as btstrats
+
+from . import predict_model
 
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
     params = dict(
         atr_period=14,
-        atr_multiplier=1.5  # for stop-loss
+        atr_multiplier=1.5,  # for stop-loss
+        risk_per_trade = 0.01
     )
-    
+    predictions = predict_model.predict_model(
+        'models/model1/lstm_model.keras',
+        'models/model1/scaler.save',
+        'data/processed-data/price-gold-cleaned.csv'
+        
+    )
+
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
         dt = dt or self.datas[0].datetime.date(0)
@@ -28,8 +37,7 @@ class TestStrategy(bt.Strategy):
         # Keep a reference to the "close" line in the data[0] dataseries
         self.dataclose = self.datas[0].close
         self.atr = bt.ind.ATR(self.data, period=self.p.atr_period)
-
-        self.trades = [] 
+        self.trades = []
         # To keep track of pending orders
         self.order = None
 
@@ -58,78 +66,70 @@ class TestStrategy(bt.Strategy):
             print("Order was rejected by the broker.")
 
         # Write down: no pending order
-        print(self.broker.getvalue())
         self.order = None
 
     def next(self):
-        # Simply log the closing price of the series from the reference
-        self.log('Close, %.2f' % self.dataclose[0])
         # Check if an order is pending ... if yes, we cannot send a 2nd one
         if self.order:
             return
+        
 
         # Check if we are in the market
-        if not self.position:
+        if not self.position and  len(self) < len(self.predictions[0]):
             
             # Not yet ... we MIGHT BUY if ...
-            if self.dataclose[0] < self.dataclose[-1]:
-                    # current close less than previous close
-
-                    if self.dataclose[-1] < self.dataclose[-2]:
-                        # previous close less than the previous close
-
-                        atr_value = self.atr[0]
-                        risk_per_trade = 0.01  # 1% of portfolio
-                        stop_loss_distance = atr_value * self.p.atr_multiplier
-                        print('atr:', atr_value)
-
-                        capital = self.broker.getvalue()
-                        risk_amount = capital * risk_per_trade
-
-                        # Position sizing based on how much we’re risking per share
-                        size = risk_amount / stop_loss_distance
-                        # Buy and store stop price
-                        self.buy_price = self.data.close[0]
-                        self.stop_price = self.buy_price - stop_loss_distance
-                        self.log('Buy price: %.2f' % self.buy_price)
-                        self.log('Stop price: %.2f' % self.stop_price)
-                        self.log('Size: %.2f' % size)  
-                        # self.buy_bracket(
-                        #     price=self.buy_price,
-                        #     size=size,
-                        #     stopprice=self.stop_price
-                        # )
-
-                        self.buy()
-
-                        # BUY, BUY, BUY!!! (with default parameters)
-                        self.log('BUY CREATE, %.2f' % self.dataclose[0])
-
-
-        else:
-
-            # Already in the market ... we might sell
-            if len(self) >= (self.bar_executed + 5):
-                # SELL, SELL, SELL!!! (with all possible default parameters)
-                self.log('SELL CREATE, %.2f' % self.dataclose[0])
-
-                # Keep track of the created order to avoid a 2nd order
-                self.order = self.sell()
+            atr_value = self.atr[0]
+            if max(self.predictions[0][len(self) -10] - self.dataclose[0]) > self.p.atr_multiplier * atr_value:
+                self.place_order("buy", atr_value)
+            elif min(self.predictions[0][len(self) -10] - self.dataclose[0]) < -self.p.atr_multiplier * atr_value:
+                self.place_order("sell", atr_value)
         
         # time.sleep(1)
+
+    def place_order(self, order_type, atr_value):
+        stop_loss_distance = atr_value * self.p.atr_multiplier
+
+        capital = self.broker.getvalue()
+        risk_amount = capital * self.p.risk_per_trade
+        size = risk_amount / stop_loss_distance
+        self.price = self.data.close[0]
+        
+        if order_type == "buy":
+            self.stop_price = self.price - stop_loss_distance
+
+            self.buy_bracket(
+                price=self.price,
+                size=size,
+                stopprice=self.stop_price,
+                limitprice=self.price + stop_loss_distance,
+            )
+        elif order_type=="sell":
+            self.stop_price = self.price + stop_loss_distance
+
+            self.sell_bracket(
+                price=self.price,
+                size=size,
+                stopprice=self.stop_price,
+                limitprice=self.price - stop_loss_distance,
+            )
+        self.trades.append({
+            'entry_price': self.price,
+            'stop_loss': self.stop_price,
+            'order_type': order_type    
+        })
+        
 
 
 
 if __name__ == '__main__':
     # Create a cerebro entity
     cerebro = bt.Cerebro()
-
     # Add a strategy
     cerebro.addstrategy(TestStrategy)
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trades')
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe')
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
-    cerebro.addanalyzer(bt.analyzers.PyFolio, _name='pyfolio')
+    # cerebro.addanalyzer(bt.analyzers.PyFolio, _name='pyfolio')
     cerebro.addanalyzer(bt.analyzers.SQN, _name='sqn')
     cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
     datapath = os.path.join(modpath, '../data/processed-data/price-gold-cleaned.csv')
 
-    # Create a Data Feed
+    # Create a Data Feed# Add a strategy
     data = bt.feeds.GenericCSVData(
         dataname=datapath,
         dtformat=('%Y-%m-%d'),
@@ -156,13 +156,14 @@ if __name__ == '__main__':
     cerebro.adddata(data)
 
     # Set our desired cash start
-    cerebro.broker.setcash(100000.0)
+    cerebro.broker.setcash(10000.0)
 
     # Print out the starting conditions
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     # Run over everything
     strats = cerebro.run()
+    cerebro.plot()
     strat = strats[0]
 
 
@@ -174,8 +175,8 @@ if __name__ == '__main__':
     print("SQN:", strat.analyzers.sqn.get_analysis())
     print("Returns:", strat.analyzers.returns.get_analysis()['rtot'])
     
-    pyfoliozer = strat.analyzers.getbyname('pyfolio')
-    returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
+    # pyfoliozer = strat.analyzers.getbyname('pyfolio')
+    # returns, positions, transactions, gross_lev = pyfoliozer.get_pf_items()
 
 
     # Print out the final result

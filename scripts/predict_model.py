@@ -23,17 +23,18 @@ def inverse_transform(data, scaler):
 
     return predicted_inv
 
-def predict_model(model_path, scaler_path , data, lookback_period=10):
+def predict_model(model_path, scaler_path , data_path, lookback_period=10):
     model = load_model(model_path)
     scaler = load(scaler_path)
-
+    data = pd.read_csv(data_path, index_col='datetime',  parse_dates=True)
+    data = data[['Open', 'Close', 'High', 'Low', 'Vol.']]
     scaled_data = scaler.transform(data)
     X, y = create_sequences(scaled_data, lookback_period)
     X_backtest = np.reshape(X, (X.shape[0], X.shape[1], X.shape[2]))
 
     predictions = model.predict(X_backtest)
     # Inverse transform the predictions
-    predictions = inverse_transform(predictions)
+    predictions = inverse_transform(predictions, scaler)
     
-    reely = inverse_transform(y)
+    reely = inverse_transform(y, scaler)
     return predictions, reely
