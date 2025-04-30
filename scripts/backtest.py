@@ -104,7 +104,7 @@ class TestStrategy(bt.Strategy):
         
         if order_type == "buy":
             self.stop_price = self.price - stop_loss_distance
-            self.buy(size=size,  trailamount=stop_loss_distance)
+            # self.buy(size=size,  trailamount=stop_loss_distance)
 
             # self.buy_bracket(
             #     price=self.price,
@@ -115,14 +115,14 @@ class TestStrategy(bt.Strategy):
             # )
         elif order_type=="sell":
             self.stop_price = self.price + stop_loss_distance
-            self.sell(size=size,  trailamount=stop_loss_distance)
-            # self.sell_bracket(
-            #     price=self.price,
-            #     size=size,
-            #     # exectype=bt.Order.TrailingStop,
-            #     trailamount=stop_loss_distance,
-            #     # limitprice=self.price - stop_loss_distance,
-            # )
+            # self.sell(size=size,  trailamount=stop_loss_distance)
+            self.sell_bracket(
+                price=self.price,
+                size=size,
+                # exectype=bt.Order.TrailingStop,
+                # trailamount=stop_loss_distance,
+                limitprice=self.price - stop_loss_distance,
+            )
         self.trades.append({
             'entry_price': self.price,
             'stop_loss': self.stop_price,
