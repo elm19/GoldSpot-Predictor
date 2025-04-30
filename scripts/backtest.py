@@ -25,7 +25,6 @@ class TestStrategy(bt.Strategy):
         'models/model1/lstm_model.keras',
         'models/model1/scaler.save',
         'data/processed-data/price-gold-cleaned.csv'
-        
     )
 
     def log(self, txt, dt=None):
@@ -67,10 +66,19 @@ class TestStrategy(bt.Strategy):
 
         # Write down: no pending order
         self.order = None
+    def signal_generator(self, atr_value):
+
+        if max(self.predictions[0][len(self) -10] - self.dataclose[0]) > self.p.atr_multiplier * atr_value:
+            return "buy"
+        elif min(self.predictions[0][len(self) -10] - self.dataclose[0]) < -self.p.atr_multiplier * atr_value:
+            return "sell"
+        else:
+            return "hold"
 
     def next(self):
         # Check if an order is pending ... if yes, we cannot send a 2nd one
         if self.order:
+
             return
         
 
@@ -79,9 +87,9 @@ class TestStrategy(bt.Strategy):
             
             # Not yet ... we MIGHT BUY if ...
             atr_value = self.atr[0]
-            if max(self.predictions[0][len(self) -10] - self.dataclose[0]) > self.p.atr_multiplier * atr_value:
+            if self.signal_generator(atr_value) == "buy":
                 self.place_order("buy", atr_value)
-            elif min(self.predictions[0][len(self) -10] - self.dataclose[0]) < -self.p.atr_multiplier * atr_value:
+            elif self.signal_generator(atr_value) == "sell":
                 self.place_order("sell", atr_value)
         
         # time.sleep(1)
@@ -96,22 +104,25 @@ class TestStrategy(bt.Strategy):
         
         if order_type == "buy":
             self.stop_price = self.price - stop_loss_distance
+            self.buy(size=size,  trailamount=stop_loss_distance)
 
-            self.buy_bracket(
-                price=self.price,
-                size=size,
-                stopprice=self.stop_price,
-                limitprice=self.price + stop_loss_distance,
-            )
+            # self.buy_bracket(
+            #     price=self.price,
+            #     size=size,
+            #     # exectype=bt.Order.TrailingStop,
+            #     trailamount=stop_loss_distance,
+            #     # limitprice=self.price + stop_loss_distance,
+            # )
         elif order_type=="sell":
             self.stop_price = self.price + stop_loss_distance
-
-            self.sell_bracket(
-                price=self.price,
-                size=size,
-                stopprice=self.stop_price,
-                limitprice=self.price - stop_loss_distance,
-            )
+            self.sell(size=size,  trailamount=stop_loss_distance)
+            # self.sell_bracket(
+            #     price=self.price,
+            #     size=size,
+            #     # exectype=bt.Order.TrailingStop,
+            #     trailamount=stop_loss_distance,
+            #     # limitprice=self.price - stop_loss_distance,
+            # )
         self.trades.append({
             'entry_price': self.price,
             'stop_loss': self.stop_price,
