@@ -117,11 +117,11 @@ def process(df_raw, scaler, dev = True):
 # if __name__ == '__main__':
     
 
-    # Read the CSV file
-    # df_raw = pd.read_csv('data/raw-data/2025.csv', index_col="Date", parse_dates=["Date"])
+#     # Read the CSV file
+#     df_raw = pd.read_csv('data/raw-data/2025.csv', index_col="Date", parse_dates=["Date"])
 
-    # # Process the DataFrame
-    # X,y = process(df_raw)
+#     # Process the DataFrame
+#     X,y = process(df_raw)
 
-    # print(X, y)
+#     print(X, y)
     
