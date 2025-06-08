@@ -98,13 +98,14 @@ def sequence(df, seq_len=20):
     return X, Y
 
 
-def process(df_raw, scaler, dev = True):
+def process(df_raw, scaler, dev = True, ind=True):
     df = df_raw.copy()
     if dev: 
         df = treat(df)
         df = df_raw.iloc[::-1]
+    if ind:
         
-    df = indicators(df)
+        df = indicators(df)
     df = add_target(df, lookahead=7)
     
     df = standardize(df, scaler=scaler)

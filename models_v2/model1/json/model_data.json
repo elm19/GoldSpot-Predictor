@@ -1,0 +1,20 @@
+{
+    "Model Name": "model1",
+    "market": "GC",
+    "last_updated": "2025-06-08T00:00:00Z",
+
+    
+  "Total Trades": 666,
+  "Net Profit": 4774755.734716963,
+  "Sharpe Ratio": {
+    "sharperatio": 2.355893848078167
+  },
+  "Max Drawdown %": 9.162175375801727,
+  "Max Drawdown Value": 131089.6119887773,
+  "SQN": {
+    "sqn": 5.775727455630069,
+    "trades": 666
+  },
+  "Returns": 6.170605161463982,
+  "Final Portfolio Value": 4784755.73
+}
